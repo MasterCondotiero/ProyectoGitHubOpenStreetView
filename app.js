@@ -1,0 +1,133 @@
+// app.js para la versión jugable en web con geolocalización opcional
+
+let map = L.map('map').setView([38.79, 0.17], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+let userPosition = null;
+let currentMarkers = [];
+let data = null;
+
+const puebloSelect = document.getElementById('puebloSelect');
+const questionBox = document.getElementById('questionBox');
+const placeTitle = document.getElementById('placeTitle');
+const placeDesc = document.getElementById('placeDesc');
+const quiz = document.getElementById('quiz');
+
+// Botón para desactivar la geolocalización
+const disableButton = document.createElement('button');
+disableButton.textContent = 'Desactivar geolocalización';
+disableButton.style.margin = '1rem auto';
+disableButton.style.display = 'block';
+disableButton.onclick = () => {
+  userPosition = null;
+  alert('Geolocalización desactivada. Podrás ver pero no responder preguntas.');
+};
+document.body.insertBefore(disableButton, document.body.firstChild);
+
+// Calcular distancia entre dos puntos en km
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // en km
+}
+
+// Mostrar preguntas si estás dentro de 200 m
+function showQuestion(marker) {
+  if (!userPosition) {
+    alert('Activa la geolocalización para poder responder.');
+    return;
+  }
+
+  const distance = getDistance(
+    userPosition.lat,
+    userPosition.lng,
+    marker.coordinates.lat,
+    marker.coordinates.lng
+  );
+
+  if (distance > 0.2) {
+    alert('Debes estar a menos de 200 metros para responder.');
+    return;
+  }
+
+  placeTitle.textContent = marker.title;
+  placeDesc.textContent = marker.description;
+  quiz.innerHTML = '';
+
+  marker.questions.forEach((q, index) => {
+    const div = document.createElement('div');
+    div.className = 'question';
+
+    const questionTitle = document.createElement('p');
+    questionTitle.textContent = `Pregunta ${index + 1}: ${q.question}`;
+    div.appendChild(questionTitle);
+
+    const options = document.createElement('div');
+    options.className = 'options';
+
+    q.options.forEach((option, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option';
+      btn.textContent = option;
+      btn.onclick = () => {
+        if (i === q.correct) {
+          btn.classList.add('correct');
+        } else {
+          btn.classList.add('incorrect');
+        }
+        options.querySelectorAll('button').forEach(b => b.disabled = true);
+      };
+      options.appendChild(btn);
+    });
+
+    div.appendChild(options);
+    quiz.appendChild(div);
+  });
+
+  questionBox.classList.remove('hidden');
+}
+
+// Cargar puntos del pueblo seleccionado
+puebloSelect.addEventListener('change', async (e) => {
+  const pueblo = e.target.value;
+  if (!pueblo) return;
+
+  const response = await fetch(`json/${pueblo}.json`);
+  data = await response.json();
+
+  currentMarkers.forEach(m => map.removeLayer(m));
+  currentMarkers = [];
+
+  data.markers.forEach(marker => {
+    const m = L.marker([marker.coordinates.lat, marker.coordinates.lng]).addTo(map);
+    m.on('click', () => showQuestion(marker));
+    currentMarkers.push(m);
+  });
+
+  map.setView([
+    data.markers[0].coordinates.lat,
+    data.markers[0].coordinates.lng
+  ], 15);
+});
+
+// Obtener ubicación del usuario
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition((position) => {
+    userPosition = {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude
+    };
+  }, (err) => {
+    console.warn('No se pudo obtener la ubicación.');
+  });
+} else {
+  alert('Este navegador no soporta geolocalización.');
+}

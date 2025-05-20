@@ -1,0 +1,31 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explorador del Pueblo</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+  <header>
+    <h1>Explorador del Pueblo</h1>
+    <select id="puebloSelect">
+      <option value="">-- Selecciona un pueblo --</option>
+      <option value="javea">Jávea</option>
+      <option value="denia">Denia</option>
+    </select>
+  </header>
+  <main>
+    <div id="map"></div>
+    <div id="questionBox" class="hidden">
+      <h2 id="placeTitle"></h2>
+      <p id="placeDesc"></p>
+      <div id="quiz"></div>
+    </div>
+  </main>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
