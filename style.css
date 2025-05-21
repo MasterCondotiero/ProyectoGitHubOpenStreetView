@@ -1,5 +1,4 @@
 /* style.css para versión móvil del juego */
-
 body {
     margin: 0;
     font-family: system-ui, sans-serif;
@@ -76,4 +75,3 @@ body {
   .hidden {
     display: none;
   }
-  
