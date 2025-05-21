@@ -1,19 +1,41 @@
 // app.js para la versión jugable en web con geolocalización opcional
-
-let map = L.map('map').setView([38.79, 0.17], 14);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
-
 let userPosition = null;
 let currentMarkers = [];
 let data = null;
+let lugaresCompletados = new Set();
+const marcadorPorTitulo = {};
 
 const puebloSelect = document.getElementById('puebloSelect');
 const questionBox = document.getElementById('questionBox');
 const placeTitle = document.getElementById('placeTitle');
 const placeDesc = document.getElementById('placeDesc');
 const quiz = document.getElementById('quiz');
+
+let map = L.map('map').setView([38.79, 0.17], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+const iconoNormal = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
+const iconoCompletado = L.icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
+const iconoIncorrecto = L.icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
 
 // Botón para desactivar la geolocalización
 const disableButton = document.createElement('button');
@@ -78,10 +100,17 @@ function showQuestion(marker) {
       btn.className = 'option';
       btn.textContent = option;
       btn.onclick = () => {
+        if (btn.disabled) return;
+        const marcador = marcadorPorTitulo[marker.title];
         if (i === q.correct) {
           btn.classList.add('correct');
+          marcador.setIcon(iconoCompletado);
+          lugaresCompletados.add(marker.title);
+          alert(`¡Has acertado en "${marker.title}"!`);
         } else {
           btn.classList.add('incorrect');
+          marcador.setIcon(iconoIncorrecto);
+          alert(`Respuesta incorrecta en "${marker.title}".`);
         }
         options.querySelectorAll('button').forEach(b => b.disabled = true);
       };
@@ -107,9 +136,11 @@ puebloSelect.addEventListener('change', async (e) => {
   currentMarkers = [];
 
   data.markers.forEach(marker => {
-    const m = L.marker([marker.coordinates.lat, marker.coordinates.lng]).addTo(map);
+    const icon = lugaresCompletados.has(marker.title) ? iconoCompletado : iconoNormal;
+    const m = L.marker([marker.coordinates.lat, marker.coordinates.lng], { icon }).addTo(map);
     m.on('click', () => showQuestion(marker));
     currentMarkers.push(m);
+    marcadorPorTitulo[marker.title] = m;
   });
 
   map.setView([
