@@ -1,5 +1,6 @@
 // app.js para la versión jugable en web con geolocalización opcional
 let userPosition = null;
+let userMarker = null;
 let currentMarkers = [];
 let data = null;
 let lugaresCompletados = new Set();
@@ -156,6 +157,17 @@ if (navigator.geolocation) {
       lat: position.coords.latitude,
       lng: position.coords.longitude
     };
+
+    // Mostrar marcador en el mapa
+    if (userMarker) {
+      userMarker.setLatLng(userPosition);
+    } else {
+      userMarker = L.marker(userPosition, {
+        title: "Tu ubicación",
+        opacity: 0.6
+      }).addTo(map);
+    }
+
   }, (err) => {
     console.warn('No se pudo obtener la ubicación.');
   });
