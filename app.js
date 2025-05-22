@@ -77,8 +77,7 @@ function showQuestion(marker) {
   );
 
   if (distance > 0.2) {
-    alert('Debes estar a menos de 200 metros para responder.');
-    return;
+  alert('Puedes ver este punto, pero debes estar a menos de 200 metros para responder.');
   }
 
   placeTitle.textContent = marker.title;
@@ -101,21 +100,27 @@ function showQuestion(marker) {
       btn.className = 'option';
       btn.textContent = option;
       btn.onclick = () => {
-        if (btn.disabled) return;
-        const marcador = marcadorPorTitulo[marker.title];
-        if (i === q.correct) {
-          btn.classList.add('correct');
-          marcador.setIcon(iconoCompletado);
-          lugaresCompletados.add(marker.title);
-          alert(`¡Has acertado en "${marker.title}"!`);
-        } else {
-          btn.classList.add('incorrect');
-          marcador.setIcon(iconoIncorrecto);
-          alert(`Respuesta incorrecta en "${marker.title}".`);
-        }
-        options.querySelectorAll('button').forEach(b => b.disabled = true);
+      if (btn.disabled) return;
+    
+      if (distance > 0.2) {
+        alert('Estás fuera de rango. Acércate al punto para responder.');
+        return;
+      }
+    
+      const marcador = marcadorPorTitulo[marker.title];
+      if (i === q.correct) {
+        btn.classList.add('correct');
+        marcador.setIcon(iconoCompletado);
+        lugaresCompletados.add(marker.title);
+        alert(`¡Has acertado en "${marker.title}"!`);
+      } else {
+        btn.classList.add('incorrect');
+        marcador.setIcon(iconoIncorrecto);
+        alert(`Respuesta incorrecta en "${marker.title}".`);
+      }
+    
+      options.querySelectorAll('button').forEach(b => b.disabled = true);
       };
-      options.appendChild(btn);
     });
 
     div.appendChild(options);
