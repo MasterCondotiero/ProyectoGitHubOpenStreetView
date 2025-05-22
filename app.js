@@ -129,7 +129,7 @@ puebloSelect.addEventListener('change', async (e) => {
   const pueblo = e.target.value;
   if (!pueblo) return;
 
-  const response = await fetch(`json/${pueblo}.json`);
+  const response = await fetch(`json/${pueblo}`);
   data = await response.json();
 
   currentMarkers.forEach(m => map.removeLayer(m));
