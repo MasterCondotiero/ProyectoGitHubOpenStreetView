@@ -139,7 +139,13 @@ puebloSelect.addEventListener('change', async (e) => {
   const pueblo = e.target.value;
   if (!pueblo) return;
 
-  const response = await fetch(`json/${pueblo}.json`);
+  const url = `json/${pueblo}.json`;       // json/javea.json
+  console.log('Cargando', url);
+  const response = await fetch(url);
+  if (!response.ok) {
+    console.error('Error cargando JSON:', response.status, url);
+    return;
+  }
   data = await response.json();
 
   // limpia viejos marcadores
