@@ -139,11 +139,11 @@ puebloSelect.addEventListener('change', async (e) => {
   const pueblo = e.target.value;
   if (!pueblo) return;
 
-  const response = await fetch(`json/${pueblo}`);
+  const response = await fetch(`json/${pueblo}.json`);
   data = await response.json();
 
   // limpia viejos marcadores
-  currentMarkers.forEach((m) => map.removeLayer(m));
+  currentMarkers.forEach(m => map.removeLayer(m));
   currentMarkers = [];
 
   // añade nuevos y guarda referencia
@@ -156,6 +156,7 @@ puebloSelect.addEventListener('change', async (e) => {
       { icon }
     ).addTo(map);
     m.on('click', () => showQuestion(marker));
+    
     currentMarkers.push(m);
     marcadorPorTitulo[marker.title] = m;
   });
@@ -166,7 +167,10 @@ puebloSelect.addEventListener('change', async (e) => {
     map.fitBounds(grupo.getBounds(), { padding: [40, 40] });
   }
 });
-
+// Disparar la carga inicial si ya hay un valor en el <select>
+if (puebloSelect.value) {
+  puebloSelect.dispatchEvent(new Event('change'));
+}
 // Obtener ubicación del usuario y mostrar su marcador
 if (navigator.geolocation) {
   navigator.geolocation.watchPosition(
