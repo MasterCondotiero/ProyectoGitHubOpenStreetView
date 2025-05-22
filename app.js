@@ -23,14 +23,12 @@ const iconoNormal = L.icon({
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
 });
-
 const iconoCompletado = L.icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
 });
-
 const iconoIncorrecto = L.icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
   iconSize: [25, 41],
@@ -56,28 +54,32 @@ function getDistance(lat1, lon1, lat2, lon2) {
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(lat1 * Math.PI / 180) *
+      Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // en km
 }
 
-// Mostrar preguntas si estás dentro de 200 m
+// Mostrar preguntas (siempre abre; solo bloquea respuesta fuera de rango)
 function showQuestion(marker) {
+  // calcular distancia (Infinity si no hay posición)
+  const distance = userPosition
+    ? getDistance(
+        userPosition.lat,
+        userPosition.lng,
+        marker.coordinates.lat,
+        marker.coordinates.lng
+      )
+    : Infinity;
+
   if (!userPosition) {
-    alert('Activa la geolocalización para poder responder.');
-    return;
-  }
-
-  const distance = getDistance(
-    userPosition.lat,
-    userPosition.lng,
-    marker.coordinates.lat,
-    marker.coordinates.lng
-  );
-
-  if (distance > 0.2) {
-  alert('Puedes ver este punto, pero debes estar a menos de 200 metros para responder.');
+    alert('Activa la geolocalización para poder responder preguntas.');
+  } else if (distance > 0.2) {
+    alert(
+      'Puedes ver este punto, pero debes estar a menos de 200 metros para responder.'
+    );
   }
 
   placeTitle.textContent = marker.title;
@@ -100,27 +102,29 @@ function showQuestion(marker) {
       btn.className = 'option';
       btn.textContent = option;
       btn.onclick = () => {
-      if (btn.disabled) return;
-    
-      if (distance > 0.2) {
-        alert('Estás fuera de rango. Acércate al punto para responder.');
-        return;
-      }
-    
-      const marcador = marcadorPorTitulo[marker.title];
-      if (i === q.correct) {
-        btn.classList.add('correct');
-        marcador.setIcon(iconoCompletado);
-        lugaresCompletados.add(marker.title);
-        alert(`¡Has acertado en "${marker.title}"!`);
-      } else {
-        btn.classList.add('incorrect');
-        marcador.setIcon(iconoIncorrecto);
-        alert(`Respuesta incorrecta en "${marker.title}".`);
-      }
-    
-      options.querySelectorAll('button').forEach(b => b.disabled = true);
+        if (btn.disabled) return;
+
+        // solo bloquear la respuesta si fuera de rango
+        if (!userPosition || distance > 0.2) {
+          alert('Estás fuera de rango. Acércate al punto para responder.');
+          return;
+        }
+
+        const marcador = marcadorPorTitulo[marker.title];
+        if (i === q.correct) {
+          btn.classList.add('correct');
+          marcador.setIcon(iconoCompletado);
+          lugaresCompletados.add(marker.title);
+          alert(`¡Has acertado en "${marker.title}"!`);
+        } else {
+          btn.classList.add('incorrect');
+          marcador.setIcon(iconoIncorrecto);
+          alert(`Respuesta incorrecta en "${marker.title}".`);
+        }
+
+        options.querySelectorAll('button').forEach((b) => (b.disabled = true));
       };
+      options.appendChild(btn);
     });
 
     div.appendChild(options);
@@ -138,42 +142,53 @@ puebloSelect.addEventListener('change', async (e) => {
   const response = await fetch(`json/${pueblo}`);
   data = await response.json();
 
-  currentMarkers.forEach(m => map.removeLayer(m));
+  // limpia viejos marcadores
+  currentMarkers.forEach((m) => map.removeLayer(m));
   currentMarkers = [];
 
-  data.markers.forEach(marker => {
-    const icon = lugaresCompletados.has(marker.title) ? iconoCompletado : iconoNormal;
-    const m = L.marker([marker.coordinates.lat, marker.coordinates.lng], { icon }).addTo(map);
+  // añade nuevos y guarda referencia
+  data.markers.forEach((marker) => {
+    const icon = lugaresCompletados.has(marker.title)
+      ? iconoCompletado
+      : iconoNormal;
+    const m = L.marker(
+      [marker.coordinates.lat, marker.coordinates.lng],
+      { icon }
+    ).addTo(map);
     m.on('click', () => showQuestion(marker));
     currentMarkers.push(m);
     marcadorPorTitulo[marker.title] = m;
   });
 
-  const grupo = L.featureGroup(currentMarkers);
-  map.fitBounds(grupo.getBounds());
+  // centra el mapa para mostrar todos
+  if (currentMarkers.length) {
+    const grupo = L.featureGroup(currentMarkers);
+    map.fitBounds(grupo.getBounds(), { padding: [40, 40] });
+  }
 });
 
-// Obtener ubicación del usuario
+// Obtener ubicación del usuario y mostrar su marcador
 if (navigator.geolocation) {
-  navigator.geolocation.watchPosition((position) => {
-    userPosition = {
-      lat: position.coords.latitude,
-      lng: position.coords.longitude
-    };
+  navigator.geolocation.watchPosition(
+    (position) => {
+      userPosition = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
 
-    // Mostrar marcador en el mapa
-    if (userMarker) {
-      userMarker.setLatLng(userPosition);
-    } else {
-      userMarker = L.marker(userPosition, {
-        title: "Tu ubicación",
-        opacity: 0.6
-      }).addTo(map);
+      if (userMarker) {
+        userMarker.setLatLng(userPosition);
+      } else {
+        userMarker = L.marker(userPosition, {
+          title: 'Tu ubicación',
+          opacity: 0.6,
+        }).addTo(map);
+      }
+    },
+    (err) => {
+      console.warn('No se pudo obtener la ubicación.');
     }
-
-  }, (err) => {
-    console.warn('No se pudo obtener la ubicación.');
-  });
+  );
 } else {
   alert('Este navegador no soporta geolocalización.');
 }
