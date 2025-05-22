@@ -149,10 +149,8 @@ puebloSelect.addEventListener('change', async (e) => {
     marcadorPorTitulo[marker.title] = m;
   });
 
-  map.setView([
-    data.markers[0].coordinates.lat,
-    data.markers[0].coordinates.lng
-  ], 15);
+  const grupo = L.featureGroup(currentMarkers);
+  map.fitBounds(grupo.getBounds());
 });
 
 // Obtener ubicación del usuario
